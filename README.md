@@ -8,7 +8,7 @@ mkdir models
 wget https://www.dropbox.com/s/dcsdi36jbc570u9/fasterrcnn_resnet50_fpn.pt -O models/fasterrcnn_resnet50_fpn.pt
 ```
 
-## Set up environments
+## Set up environment
 
 ```sh
 conda create -n rip_det python=3.9
