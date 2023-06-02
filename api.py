@@ -1,29 +1,33 @@
 import os
 import sys
 import warnings
+from pathlib import Path
+from typing import Any
 
 import cupy as cp
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import requests
 import torch
 import torchvision
 import torchvision.transforms as T
+from fastapi import Depends, FastAPI, UploadFile
 from PIL import Image
+from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from fastapi import FastAPI, Depends, UploadFile
-from pydantic import BaseModel
-from typing import Any
-import requests
-from pathlib import Path
+# Used to filter out low-confidence detections
+THRESHOLD = 0.7
 
-# from google.colab.patches import cv2_imshow
-warnings.filterwarnings('ignore')
-
-# load the RIP dataset category names
-RIP_INSTANCE_CATEGORY_NAMES = ['__background__', 'rip']
+# Image annotation configuration
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+COLOR = (255, 0, 0)
+BOX_THICKNESS = 2
+TEXT_SIZE = 2
+TEXT_THICKNESS = 2
+RIP_TEXT = 'rip'
 
 
 app = FastAPI()
@@ -43,16 +47,25 @@ model_folder = Path(os.environ.get(
     str(Path(__file__).parent)
 ))
 
+def get_device():
+    """Gets device, preferring a CUDA-enabled GPU when available"""
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    else:
+        return torch.device('cpu')
+
 def load_model(weights_path):
+    """Loads model weights and moves to available device"""
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
     model.roi_heads.box_predictor = FastRCNNPredictor(
         in_channels=model.roi_heads.box_predictor.cls_score.in_features,
         num_classes=2
     )
     model.load_state_dict(torch.load(weights_path))
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    model.to(device)
+
+    model.to(get_device())
     model.eval()
+
     return model
 
 models = {
@@ -64,110 +77,48 @@ models = {
 def get_model(model: str, version: str):
     return models[model][version]
 
-def get_device():
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-    return device
+def get_boxes(image, model, threshold):
+    """Gets boxes of detected rip currents in image coordinates
 
-def get_prediction(img_path, model, confidence):
+    Only boxes whose corresponding scores are greater than the given threshold
+    are returned.
     """
-    get_prediction
-      parameters:
-        - img_path - path of the input image
-        - confidence - threshold value for prediction score
-      method:
-        - Image is obtained from the image path
-        - the image is converted to image tensor using PyTorch's Transforms
-        - image is passed through the model to get the predictions
-        - class, box coordinates are obtained, but only prediction score > threshold
-          are chosen.
-
-    """
-    # img = Image.open(img_path)
-    img = img_path
     transform = T.Compose([T.ToTensor()])
-    img = transform(img)
-    pred = model([img.to(get_device(), dtype=torch.float)])
-    pred_class = [RIP_INSTANCE_CATEGORY_NAMES[i]
-                  for i in list(pred[0]['labels'].cpu().numpy())]
-    pred_boxes = [[(i[0], i[1]), (i[2], i[3])]
-                  for i in list(pred[0]['boxes'].detach().cpu().numpy())]
-    pred_score = list(pred[0]['scores'].detach().cpu().numpy())
-    print("pred_score ", pred_score)
-    pred_t = [pred_score.index(x) for x in pred_score if x > confidence]
-    if len(pred_t) == 0:
-        pred_boxes = []
-        pred_class = []
-        pred_score = []
-    else:
-        pred_t = [pred_score.index(x)
-                  for x in pred_score if x > confidence][-1]
-        pred_boxes = pred_boxes[:pred_t+1]
-        pred_class = pred_class[:pred_t+1]
-        pred_score = pred_score[:pred_t+1]
+    image = transform(image)
+    predictions = model([image.to(get_device(), dtype=torch.float)])[0]
+    boxes = []
+    for box, score in zip(predictions['boxes'], predictions['scores']):
+        if score > threshold:
+            boxes.append(box)
+    return boxes
 
-    return pred_boxes, pred_class, pred_score
+def draw_boxes(image, boxes):
+    """Draws boxes on an image around detected rip currents"""
+    for box in boxes:
+        pt1 = (int(box[0]), int(box[1]))
+        pt2 = (int(box[2]), int(box[3]))
+        cv2.rectangle(image, pt1, pt2, color=COLOR, thickness=BOX_THICKNESS)
+        cv2.putText(image, RIP_TEXT, pt1, FONT, TEXT_SIZE, COLOR, thickness=TEXT_THICKNESS)
 
-
-def detect_object(img_path, model, confidence=0.5, rect_th=2, text_size=2, text_th=2):
-    """
-    object_detection_api
-      parameters:
-        - img_path - path of the input image
-        - confidence - threshold value for prediction score
-        - rect_th - thickness of bounding box
-        - text_size - size of the class label text
-        - text_th - thichness of the text
-      method:
-        - prediction is obtained from get_prediction method
-        - for each prediction, bounding box is drawn and text is written 
-          with opencv
-        - the final image is displayed
-    """
-    boxes, pred_cls, pred_score = get_prediction(img_path, model, confidence)
-
-    img = img_path
-
-    # convert PIL image to OPENCV image
-    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-
-    return pred_cls, pred_score, boxes, img
-
-
-def draw_prediction(img, boxes, pred_cls, rect_th=2, text_size=2, text_th=2):
-    for i in range(len(boxes)):
-        pt1 = (int(boxes[i][0][0]), int(boxes[i][0][1]))
-        pt2 = (int(boxes[i][1][0]), int(boxes[i][1][1]))
-        cv2.rectangle(img, pt1, pt2, color=(255, 0, 0), thickness=rect_th)
-        cv2.putText(img, pred_cls[i], pt1, cv2.FONT_HERSHEY_SIMPLEX,
-                    text_size, (255, 0, 0), thickness=text_th)
-
-    if len(boxes) == 0:
-        cv2.putText(img, 'No rip currents are detected', [
-                    100, 100], cv2.FONT_HERSHEY_SIMPLEX, text_size, (255, 0, 0), thickness=text_th)
-
-    return img
-
+    return image
 
 def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes):
+    """Applies a given rip current detection model to the provided image"""
     npdata = np.asarray(bytearray(bytedata), dtype="uint8")
     image = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    cls, score, bboxes, image = detect_object(image, pt_model, confidence=0.7)
+    boxes = get_boxes(image, pt_model, THRESHOLD)
 
-    if bboxes:
-
+    if boxes:
         output_file = output_path / model / str(version) / name
-        image = draw_prediction(image, bboxes, cls)
+        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        image = draw_boxes(image, boxes)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(output_file), image)
         return str(output_file)
 
     return None
-
 
 @app.post("/{model}/{version}/upload")
 def from_upload(
@@ -180,7 +131,6 @@ def from_upload(
     proc = process_image(pt, model, version, file.filename, bytedata)
     return { "path": proc }
 
-
 @app.post("/{model}/{version}/url")
 def from_url(
     model: str,
@@ -192,7 +142,6 @@ def from_url(
     name = Path(params.url).name
     proc = process_image(pt, model, version, name, bytedata)
     return { "path": proc }
-
 
 @app.post("/health")
 def health():
