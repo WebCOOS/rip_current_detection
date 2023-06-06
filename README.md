@@ -19,5 +19,5 @@ pip install -r requirements.txt
 ## Run app
 
 ```sh
-uvicorn api:app --reload
+uvicorn api:app --port 8888 --reload
 ```
