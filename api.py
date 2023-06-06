@@ -17,7 +17,6 @@ from fastapi import Depends, FastAPI, UploadFile
 from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from tqdm import tqdm
 
 # Used to filter out low-confidence detections
 THRESHOLD = 0.7

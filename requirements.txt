@@ -5,7 +5,6 @@ opencv_python==4.6.0.66
 Pillow==9.4.0
 https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp39-cp39-linux_x86_64.whl
 https://download.pytorch.org/whl/cu116/torchvision-0.14.1%2Bcu116-cp39-cp39-linux_x86_64.whl
-tqdm==4.64.1
 fastapi
 uvicorn
 python-multipart
