@@ -2,22 +2,31 @@
 
 ## Download model weights
 
-```sh
+```shell
 # From rip_current_detection repo root
-mkdir models
-wget https://www.dropbox.com/s/dcsdi36jbc570u9/fasterrcnn_resnet50_fpn.pt -O models/fasterrcnn_resnet50_fpn.pt
+RCD_DIR="models/rip_current_detector/1" && \
+    mkdir -p "${RCD_DIR}" && \
+    wget https://www.dropbox.com/s/dcsdi36jbc570u9/fasterrcnn_resnet50_fpn.pt -O "${RCD_DIR}/fasterrcnn_resnet50_fpn.pt";
 ```
 
 ## Set up environment
 
-```sh
-conda create -n rip_det python=3.9
-conda activate rip_det
-pip install -r requirements.txt
+### GPU setup on host
+
+TODO
+
+### Python environment setup
+
+
+```shell
+micromamba create -f environment.yml
+micromamba activate rip_current_detection
 ```
+
+
 
 ## Run app
 
-```sh
+```shell
 uvicorn api:app --port 8888 --reload
 ```
