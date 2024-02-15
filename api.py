@@ -147,7 +147,7 @@ def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes
 
     return None
 
-@app.post("/{model}/{version}/upload")
+@app.post("/torchvision/{model}/{version}/upload")
 def from_upload(
     model: str,
     version: str,
