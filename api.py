@@ -158,17 +158,17 @@ def from_upload(
     proc = process_image(pt, model, version, file.filename, bytedata)
     return { "path": proc }
 
-@app.post("/{model}/{version}/url")
-def from_url(
-    model: str,
-    version: str,
-    params: UrlParams,
-    pt: Any = Depends(get_model),
-):
-    bytedata = requests.get(params.url).content
-    name = Path(params.url).name
-    proc = process_image(pt, model, version, name, bytedata)
-    return { "path": proc }
+# @app.post("/{model}/{version}/url")
+# def from_url(
+#     model: str,
+#     version: str,
+#     params: UrlParams,
+#     pt: Any = Depends(get_model),
+# ):
+#     bytedata = requests.get(params.url).content
+#     name = Path(params.url).name
+#     proc = process_image(pt, model, version, name, bytedata)
+#     return { "path": proc }
 
 @app.post("/health")
 def health():
