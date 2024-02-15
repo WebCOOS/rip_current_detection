@@ -52,7 +52,7 @@ output_path = Path(os.environ.get(
 
 model_folder = Path(os.environ.get(
     'MODEL_DIRECTORY',
-    str(Path(__file__).parent)
+    str(Path(__file__).parent / "models" )
 ))
 
 def get_device():
