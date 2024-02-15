@@ -10,8 +10,14 @@ BASE_DIR = Path( __file__ ).parent
 logger.info( "Begin test battery...")
 
 UPLOAD_TEST_PATHS = [
+    # With rips...
     ( 'rip-45.jpg',     BASE_DIR / 'inputs' / 'rip-45.jpg',     True    ),
+    ( 'rip-49.jpg',     BASE_DIR / 'inputs' / 'rip-49.jpg',     True    ),
+    ( 'rip-255.jpg',    BASE_DIR / 'inputs' / 'rip-255.jpg',    True    ),
+    # No rips...
     ( 'norip-99.png',   BASE_DIR / 'inputs' / 'norip-99.png',   False   ),
+    ( 'norip-120.png',  BASE_DIR / 'inputs' / 'norip-120.png',  False   ),
+    ( 'norip-210.png',  BASE_DIR / 'inputs' / 'norip-210.png',  False   ),
 ]
 
 for ( name, up_path, is_detected ) in UPLOAD_TEST_PATHS:
