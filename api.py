@@ -1,20 +1,23 @@
 import os
-import sys
-import warnings
+import errno
+# import sys
+# import warnings
+
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
-import cupy as cp
+# import cupy as cp
 import cv2
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
-import requests
+# import requests
 import torch
 import torchvision
 import torchvision.transforms as T
 from fastapi import Depends, FastAPI, UploadFile
-from PIL import Image
+from fastapi.responses import RedirectResponse
+# from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
