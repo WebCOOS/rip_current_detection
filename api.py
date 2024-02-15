@@ -65,21 +65,28 @@ def get_device():
     else:
         return torch.device('cpu')
 
-def load_model(weights_path, model_url):
-    """Loads model weights and moves to available device"""
-    if not weights_path.exists():
-        weights_path.parent.mkdir(parents=True, exist_ok=True)
-        r = requests.get(model_url)
-        r.raise_for_status()
-        with open(weights_path, 'wb') as f:
-            f.write(r.content)
+def load_model(model_path):
+    """Loads model / model weights and moves to available device"""
+
+    if not model_path.exists():
+        raise FileNotFoundError(
+            errno.ENOENT,
+            os.strerror( errno.ENOENT ),
+            str( model_path ),
+        )
+
+        # weights_path.parent.mkdir(parents=True, exist_ok=True)
+        # r = requests.get(model_url)
+        # r.raise_for_status()
+        # with open(weights_path, 'wb') as f:
+        #     f.write(r.content)
 
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
     model.roi_heads.box_predictor = FastRCNNPredictor(
         in_channels=model.roi_heads.box_predictor.cls_score.in_features,
         num_classes=2
     )
-    model.load_state_dict(torch.load(str(weights_path)))
+    model.load_state_dict(torch.load(str(model_path)))
 
     model.to(get_device())
     model.eval()
