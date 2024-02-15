@@ -81,7 +81,7 @@ def load_model(model_path):
         # with open(weights_path, 'wb') as f:
         #     f.write(r.content)
 
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=None)
     model.roi_heads.box_predictor = FastRCNNPredictor(
         in_channels=model.roi_heads.box_predictor.cls_score.in_features,
         num_classes=2
