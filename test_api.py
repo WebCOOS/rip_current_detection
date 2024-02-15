@@ -1,39 +1,43 @@
 import requests
+import logging
+from pathlib import Path
 
-json_response = requests.post(
-    'http://127.0.0.1:8888/rip_current_detector/1/url',
-    headers={
-        'content-type': 'application/json'
-    },
-    json={
-        'url': 'https://files.axds.co/webcoos/rip_current_detection/inputs/rip-255.jpg',
-    }
-)
+logging.basicConfig( level=logging.INFO)
+logger = logging.getLogger( __file__ )
 
-# Shouldn't produce an output file
-json_response = requests.post(
-    'http://127.0.0.1:8888/rip_current_detector/1/url',
-    headers={
-        'content-type': 'application/json'
-    },
-    json={
-        'url': 'https://files.axds.co/webcoos/rip_current_detection/inputs/norip-120.jpg',
-    }
-)
+BASE_DIR = Path( __file__ ).parent
 
-with open('inputs/rip-45.jpg', 'rb') as f:
-    json_response = requests.post(
-        'http://127.0.0.1:8888/rip_current_detector/1/upload',
-        files={
-            'file': ('rip-45.jpg', f)
-        }
-    )
+logger.info( "Begin test battery...")
 
-# Shouldn't produce an output file
-with open('inputs/norip-99.png', 'rb') as f:
-    json_response = requests.post(
-        'http://127.0.0.1:8888/rip_current_detector/1/upload',
-        files={
-            'file': ('norip-99.png', f)
-        }
-    )
+UPLOAD_TEST_PATHS = [
+    ( 'rip-45.jpg',     BASE_DIR / 'inputs' / 'rip-45.jpg',     True    ),
+    ( 'norip-99.png',   BASE_DIR / 'inputs' / 'norip-99.png',   False   ),
+]
+
+for ( name, up_path, is_detected ) in UPLOAD_TEST_PATHS:
+    logger.info( f"Testing: {name} ('{str(up_path)}')")
+    with open( up_path, 'rb') as f:
+        json_response = requests.post(
+            'http://localhost:8888/torchvision/rip_current_detector/1/upload',
+            files={
+                'file': ( name, f )
+            }
+        )
+
+        result = json_response.json()
+
+        assert result['classification_result']['detected'] == is_detected, \
+            (
+                f"Unexpected result from {name}: "
+                f"{result['classification_result']['detected']} "
+                f"!= {is_detected}"
+            )
+
+        logger.info(
+            (
+                f"Result for {name}: "
+                f"{result['classification_result']['detected']}"
+            )
+        )
+
+logger.info( "End test battery.")
