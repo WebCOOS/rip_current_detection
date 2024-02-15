@@ -57,7 +57,10 @@ model_folder = Path(os.environ.get(
 
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
-    if torch.cuda.is_available():
+
+    # TODO: Revisit to allow for supporting GPU-accelerated/CUDA support
+    # if torch.cuda.is_available():
+    if False:
         return torch.device('cuda')
     else:
         return torch.device('cpu')
