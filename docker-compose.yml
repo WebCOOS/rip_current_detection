@@ -1,3 +1,8 @@
+version: '3'
+
+volumes:
+  model-data:
+
 services:
   api:
     image: rip-current-detection:latest
@@ -5,11 +10,13 @@ services:
       context:      .
       dockerfile:   Dockerfile
     ports:
-     - 8001:8000
+     - 8888:8000
     tmpfs:
      - "/outputs"
     environment:
      - OUTPUT_DIRECTORY=/outputs
+    volumes:
+      - "model-data:/root/.cache/torch:rw"
     command: >
       gunicorn api:app
         --bind "0.0.0.0:8000"

@@ -15,11 +15,15 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as T
-from fastapi import Depends, FastAPI, UploadFile
+from fastapi import Depends, FastAPI, UploadFile, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 # from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from metrics import make_metrics_app
+from model_version import TorchvisionModelName, TorchvisionModelVersion
+from namify import namify_for_content
 
 # Used to filter out low-confidence detections
 THRESHOLD = 0.7
@@ -32,8 +36,17 @@ TEXT_SIZE = 2
 TEXT_THICKNESS = 2
 RIP_TEXT = 'rip'
 
+TORCHVISION_ENDPOINT_PREFIX = "/torchvision"
+ALLOWED_IMAGE_EXTENSIONS = (
+    "jpg",
+    "png"
+)
 
 app = FastAPI()
+
+# Prometheus metrics
+metrics_app = make_metrics_app()
+app.mount("/metrics", metrics_app)
 
 
 @app.get("/", include_in_schema=False)
@@ -55,6 +68,14 @@ model_folder = Path(os.environ.get(
     'MODEL_DIRECTORY',
     str(Path(__file__).parent / "models" )
 ))
+
+
+# Mounting the 'static' output files for the app
+app.mount(
+    "/outputs",
+    StaticFiles(directory=output_path),
+    name="outputs"
+)
 
 
 def get_device():
@@ -89,9 +110,15 @@ def load_model(model_path):
         in_channels=model.roi_heads.box_predictor.cls_score.in_features,
         num_classes=2
     )
-    model.load_state_dict(torch.load(str(model_path)))
 
-    model.to(get_device())
+    the_device = get_device()
+    model.load_state_dict(
+        torch.load(
+            str(model_path),
+            map_location=the_device
+        )
+    )
+    model.to(the_device)
     model.eval()
 
     return model
@@ -156,15 +183,32 @@ def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes
     return None
 
 
-@app.post("/torchvision/{model}/{version}/upload")
-def from_upload(
-    model: str,
-    version: str,
+@app.post(
+    f"{TORCHVISION_ENDPOINT_PREFIX}/{{model}}/{{version}}/upload",
+    tags=['torchvision'],
+    summary="Torchvision model prediection on image upload"
+)
+def torchvision_from_upload(
+    request: Request,
+    model: TorchvisionModelName,
+    version: TorchvisionModelVersion,
     file: UploadFile,
     pt: Any = Depends(get_model),
 ):
     bytedata = file.file.read()
-    proc = process_image(pt, model, version, file.filename, bytedata)
+
+    ( name, ext ) = namify_for_content( bytedata )
+
+    assert ext in ALLOWED_IMAGE_EXTENSIONS, \
+        f"{ext} not in allowed image file types: {repr(ALLOWED_IMAGE_EXTENSIONS)}"
+
+    proc = process_image(
+        pt,
+        model.value,
+        version.value,
+        name,
+        bytedata
+    )
     return { "path": proc }
 
 

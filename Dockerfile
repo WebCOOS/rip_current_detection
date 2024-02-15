@@ -1,4 +1,6 @@
-FROM mambaorg/micromamba:1.3.1-jammy-cuda-11.7.1
+FROM mambaorg/micromamba:1.3.1-jammy
+# TODO: For CUDA/GPU integration
+# FROM mambaorg/micromamba:1.3.1-jammy-cuda-11.7.1
 LABEL MAINTAINER="Josh Rhoades <josh@axds.co>"
 
 ENV MODEL_DIRECTORY /models
