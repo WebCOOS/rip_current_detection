@@ -24,6 +24,7 @@ TEXT_SIZE = 2
 TEXT_THICKNESS = 2
 RIP_TEXT = 'rip'
 
+
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
 
@@ -35,7 +36,7 @@ def get_device():
         return torch.device('cpu')
 
 
-def get_boxes(image, model, threshold) -> List[Tuple[float,Any]]:
+def get_boxes(image, model, threshold) -> List[Tuple[float, Any]]:
     """Gets boxes of detected rip currents in image coordinates
 
     Only boxes whose corresponding scores are greater than the given threshold
@@ -47,11 +48,11 @@ def get_boxes(image, model, threshold) -> List[Tuple[float,Any]]:
     boxes = []
     for box, score in zip(predictions['boxes'], predictions['scores']):
         if score > threshold:
-            boxes.append( (float(score),box) )
+            boxes.append( (float(score), box) )
     return boxes
 
 
-def draw_boxes( image, boxes: List[Tuple[float,Any]] ):
+def draw_boxes( image, boxes: List[Tuple[float, Any]] ):
     """Draws boxes on an image around detected rip currents"""
 
     for (score, box ) in boxes:

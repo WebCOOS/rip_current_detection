@@ -24,8 +24,6 @@ from namify import namify_for_content
 from score import ClassificationModelResult
 from torchvision_processing import torchvision_process_image, get_device
 
-
-
 TORCHVISION_ENDPOINT_PREFIX = "/torchvision"
 ALLOWED_IMAGE_EXTENSIONS = (
     "jpg",
