@@ -96,8 +96,7 @@ def load_model(model_path):
 models = {
     'rip_current_detector': {
         '1': load_model(
-                model_folder / 'rip_current_detector' / '1' / 'saved_weights.pt',
-                'https://www.dropbox.com/s/dcsdi36jbc570u9/fasterrcnn_resnet50_fpn.pt?dl=1'
+                model_folder / 'rip_current_detector' / '1' / 'fasterrcnn_resnet50_fpn.pt'
             ),
     }
 }
