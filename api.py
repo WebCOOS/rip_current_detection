@@ -35,6 +35,11 @@ RIP_TEXT = 'rip'
 
 app = FastAPI()
 
+@app.get("/", include_in_schema=False)
+async def index():
+    """Convenience redirect to OpenAPI spec UI for service."""
+    return RedirectResponse("/docs")
+
 
 class UrlParams(BaseModel):
     url: str
