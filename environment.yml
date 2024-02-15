@@ -6,11 +6,12 @@ dependencies:
   # Python
   - python=3.9
   # Model/ML-related
-  - matplotlib=3.8.2
   - numpy=1.23.3
   - opencv=4.6.0
   - pytorch=1.13.1
   - torchvision=0.14.1
+  # TODO: matplotlib may be unused
+  # - matplotlib=3.8.2
   # API related
   - fastapi
   - gunicorn
@@ -18,7 +19,8 @@ dependencies:
   - uvicorn
   - filetype
   - prometheus_client
-  - Pillow==9.4.0
+  # TODO: PIL/Pillow may be unused?
+  # - Pillow==9.4.0
   # Pip
   # - pip
   # - pip:
