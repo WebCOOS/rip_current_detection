@@ -1,0 +1,28 @@
+name: rip_current_detection
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python
+  - python=3.9
+  # Model/ML-related
+  - matplotlib=3.8.2
+  - numpy=1.23.3
+  - opencv=4.6.0
+  - pytorch=1.13.1
+  - torchvision=0.14.1
+  # API related
+  - fastapi
+  - gunicorn
+  - python-multipart
+  - uvicorn
+  - filetype
+  - prometheus_client
+  - Pillow==9.4.0
+  # Pip
+  # - pip
+  # - pip:
+  #   # - https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp39-cp39-linux_x86_64.whl
+  #   # - https://download.pytorch.org/whl/cu116/torchvision-0.14.1%2Bcu116-cp39-cp39-linux_x86_64.whl
+  #   # Revisit when we approach doing GPU acceleration
+  #   # - cupy-cuda11x --pre -f https://pip.cupy.dev/pre
