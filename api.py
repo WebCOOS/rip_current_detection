@@ -1,36 +1,46 @@
 import os
-import sys
-import warnings
+import errno
+# import sys
+# import warnings
+
 from pathlib import Path
 from typing import Any
-from urllib.request import urlopen
-
-import cupy as cp
-import cv2
-import matplotlib.pyplot as plt
-import numpy as np
-import requests
+# from urllib.request import urlopen
+from datetime import datetime, timezone
+# import cupy as cp
+# import matplotlib.pyplot as plt
+# import requests
 import torch
 import torchvision
-import torchvision.transforms as T
-from fastapi import Depends, FastAPI, UploadFile
-from PIL import Image
+from fastapi import Depends, FastAPI, UploadFile, Request
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+# from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from metrics import make_metrics_app
+from model_version import TorchvisionModelName, TorchvisionModelVersion
+from namify import namify_for_content
+from score import ClassificationModelResult
+from torchvision_processing import torchvision_process_image, get_device
 
-# Used to filter out low-confidence detections
-THRESHOLD = 0.7
-
-# Image annotation configuration
-FONT = cv2.FONT_HERSHEY_SIMPLEX
-COLOR = (255, 0, 0)
-BOX_THICKNESS = 2
-TEXT_SIZE = 2
-TEXT_THICKNESS = 2
-RIP_TEXT = 'rip'
-
+TORCHVISION_ENDPOINT_PREFIX = "/torchvision"
+ALLOWED_IMAGE_EXTENSIONS = (
+    "jpg",
+    "png"
+)
 
 app = FastAPI()
+
+# Prometheus metrics
+metrics_app = make_metrics_app()
+app.mount("/metrics", metrics_app)
+
+
+@app.get("/", include_in_schema=False)
+async def index():
+    """Convenience redirect to OpenAPI spec UI for service."""
+    return RedirectResponse("/docs")
 
 
 class UrlParams(BaseModel):
@@ -44,115 +54,148 @@ output_path = Path(os.environ.get(
 
 model_folder = Path(os.environ.get(
     'MODEL_DIRECTORY',
-    str(Path(__file__).parent)
+    str(Path(__file__).parent / "models" )
 ))
 
-def get_device():
-    """Gets device, preferring a CUDA-enabled GPU when available"""
-    if torch.cuda.is_available():
-        return torch.device('cuda')
-    else:
-        return torch.device('cpu')
 
-def load_model(weights_path, model_url):
-    """Loads model weights and moves to available device"""
-    if not weights_path.exists():
-        weights_path.parent.mkdir(parents=True, exist_ok=True)
-        r = requests.get(model_url)
-        r.raise_for_status()
-        with open(weights_path, 'wb') as f:
-            f.write(r.content)
+# Mounting the 'static' output files for the app
+app.mount(
+    "/outputs",
+    StaticFiles(directory=output_path),
+    name="outputs"
+)
 
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+
+def load_model(model_path):
+    """Loads model / model weights and moves to available device"""
+
+    if not model_path.exists():
+        raise FileNotFoundError(
+            errno.ENOENT,
+            os.strerror( errno.ENOENT ),
+            str( model_path ),
+        )
+
+        # weights_path.parent.mkdir(parents=True, exist_ok=True)
+        # r = requests.get(model_url)
+        # r.raise_for_status()
+        # with open(weights_path, 'wb') as f:
+        #     f.write(r.content)
+
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=None)
     model.roi_heads.box_predictor = FastRCNNPredictor(
         in_channels=model.roi_heads.box_predictor.cls_score.in_features,
         num_classes=2
     )
-    model.load_state_dict(torch.load(str(weights_path)))
 
-    model.to(get_device())
+    the_device = get_device()
+    model.load_state_dict(
+        torch.load(
+            str(model_path),
+            map_location=the_device
+        )
+    )
+    model.to(the_device)
     model.eval()
 
     return model
 
+
 models = {
     'rip_current_detector': {
         '1': load_model(
-                model_folder / 'rip_current_detector' / '1' / 'saved_weights.pt',
-                'https://www.dropbox.com/s/dcsdi36jbc570u9/fasterrcnn_resnet50_fpn.pt?dl=1'
+                model_folder / 'rip_current_detector' / '1' / 'fasterrcnn_resnet50_fpn.pt'
             ),
     }
 }
 
+
 def get_model(model: str, version: str):
     return models[model][version]
 
-def get_boxes(image, model, threshold):
-    """Gets boxes of detected rip currents in image coordinates
 
-    Only boxes whose corresponding scores are greater than the given threshold
-    are returned.
-    """
-    transform = T.Compose([T.ToTensor()])
-    image = transform(image)
-    predictions = model([image.to(get_device(), dtype=torch.float)])[0]
-    boxes = []
-    for box, score in zip(predictions['boxes'], predictions['scores']):
-        if score > threshold:
-            boxes.append(box)
-    return boxes
+def annotation_image_and_classification_result(
+    url: str,
+    classification_result: ClassificationModelResult
+):
 
-def draw_boxes(image, boxes):
-    """Draws boxes on an image around detected rip currents"""
-    for box in boxes:
-        pt1 = (int(box[0]), int(box[1]))
-        pt2 = (int(box[2]), int(box[3]))
-        cv2.rectangle(image, pt1, pt2, color=COLOR, thickness=BOX_THICKNESS)
-        cv2.putText(image, RIP_TEXT, pt1, FONT, TEXT_SIZE, COLOR, thickness=TEXT_THICKNESS)
+    dt = datetime.utcnow().replace( tzinfo=timezone.utc )
+    dt_str = dt.isoformat( "T", "seconds" ).replace( '+00:00', 'Z' )
 
-    return image
+    return {
+        "time": dt_str,
+        "annotated_image_url": url,
+        "classification_result": classification_result
+    }
 
-def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes):
-    """Applies a given rip current detection model to the provided image"""
-    npdata = np.asarray(bytearray(bytedata), dtype="uint8")
-    image = cv2.imdecode(npdata, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    boxes = get_boxes(image, pt_model, THRESHOLD)
-
-    if boxes:
-        output_file = output_path / model / str(version) / name
-        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        image = draw_boxes(image, boxes)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(output_file), image)
-        return str(output_file)
-
-    return None
-
-@app.post("/{model}/{version}/upload")
-def from_upload(
-    model: str,
-    version: str,
+@app.post(
+    f"{TORCHVISION_ENDPOINT_PREFIX}/{{model}}/{{version}}/upload",
+    tags=['torchvision'],
+    summary="Torchvision model prediection on image upload"
+)
+def torchvision_from_upload(
+    request: Request,
+    model: TorchvisionModelName,
+    version: TorchvisionModelVersion,
     file: UploadFile,
     pt: Any = Depends(get_model),
 ):
     bytedata = file.file.read()
-    proc = process_image(pt, model, version, file.filename, bytedata)
-    return { "path": proc }
 
-@app.post("/{model}/{version}/url")
-def from_url(
-    model: str,
-    version: str,
-    params: UrlParams,
-    pt: Any = Depends(get_model),
-):
-    bytedata = requests.get(params.url).content
-    name = Path(params.url).name
-    proc = process_image(pt, model, version, name, bytedata)
-    return { "path": proc }
+    ( name, ext ) = namify_for_content( bytedata )
+
+    assert ext in ALLOWED_IMAGE_EXTENSIONS, \
+        f"{ext} not in allowed image file types: {repr(ALLOWED_IMAGE_EXTENSIONS)}"
+
+    ( res_path, classification_result ) = torchvision_process_image(
+        pt,
+        output_path,
+        model.value,
+        version.value,
+        name,
+        bytedata
+    )
+
+    if( res_path is None ):
+        return annotation_image_and_classification_result(
+            None,
+            classification_result
+        )
+
+    rel_path = os.path.relpath( res_path, output_path )
+
+    url_path_for_output = rel_path
+
+    try:
+        # Try for an absolute URL (prefixed with http(s)://hostname, etc.)
+        url_path_for_output = str( request.url_for( 'outputs', path=rel_path ) )
+    except Exception:
+        # Fall back to the relative URL determined by the router
+        url_path_for_output = app.url_path_for(
+            'outputs', path=rel_path
+        )
+    finally:
+        pass
+
+    return annotation_image_and_classification_result(
+        url_path_for_output,
+        classification_result
+    )
+
 
 @app.post("/health")
 def health():
     return { "health": "ok" }
+
+# @app.post("/{model}/{version}/url")
+# def from_url(
+#     model: str,
+#     version: str,
+#     params: UrlParams,
+#     pt: Any = Depends(get_model),
+# ):
+#     bytedata = requests.get(params.url).content
+#     name = Path(params.url).name
+#     proc = process_image(pt, model, version, name, bytedata)
+#     return { "path": proc }
