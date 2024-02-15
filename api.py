@@ -5,7 +5,7 @@ import errno
 
 from pathlib import Path
 from typing import Any
-from urllib.request import urlopen
+# from urllib.request import urlopen
 
 # import cupy as cp
 import cv2
@@ -35,6 +35,7 @@ RIP_TEXT = 'rip'
 
 app = FastAPI()
 
+
 @app.get("/", include_in_schema=False)
 async def index():
     """Convenience redirect to OpenAPI spec UI for service."""
@@ -55,6 +56,7 @@ model_folder = Path(os.environ.get(
     str(Path(__file__).parent / "models" )
 ))
 
+
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
 
@@ -64,6 +66,7 @@ def get_device():
         return torch.device('cuda')
     else:
         return torch.device('cpu')
+
 
 def load_model(model_path):
     """Loads model / model weights and moves to available device"""
@@ -93,6 +96,7 @@ def load_model(model_path):
 
     return model
 
+
 models = {
     'rip_current_detector': {
         '1': load_model(
@@ -101,8 +105,10 @@ models = {
     }
 }
 
+
 def get_model(model: str, version: str):
     return models[model][version]
+
 
 def get_boxes(image, model, threshold):
     """Gets boxes of detected rip currents in image coordinates
@@ -119,6 +125,7 @@ def get_boxes(image, model, threshold):
             boxes.append(box)
     return boxes
 
+
 def draw_boxes(image, boxes):
     """Draws boxes on an image around detected rip currents"""
     for box in boxes:
@@ -128,6 +135,7 @@ def draw_boxes(image, boxes):
         cv2.putText(image, RIP_TEXT, pt1, FONT, TEXT_SIZE, COLOR, thickness=TEXT_THICKNESS)
 
     return image
+
 
 def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes):
     """Applies a given rip current detection model to the provided image"""
@@ -147,6 +155,7 @@ def process_image(pt_model, model: str, version: str, name: str, bytedata: bytes
 
     return None
 
+
 @app.post("/torchvision/{model}/{version}/upload")
 def from_upload(
     model: str,
@@ -157,6 +166,11 @@ def from_upload(
     bytedata = file.file.read()
     proc = process_image(pt, model, version, file.filename, bytedata)
     return { "path": proc }
+
+
+@app.post("/health")
+def health():
+    return { "health": "ok" }
 
 # @app.post("/{model}/{version}/url")
 # def from_url(
@@ -169,7 +183,3 @@ def from_upload(
 #     name = Path(params.url).name
 #     proc = process_image(pt, model, version, name, bytedata)
 #     return { "path": proc }
-
-@app.post("/health")
-def health():
-    return { "health": "ok" }

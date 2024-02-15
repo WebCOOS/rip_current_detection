@@ -21,6 +21,8 @@ dependencies:
   - prometheus_client
   # TODO: PIL/Pillow may be unused?
   # - Pillow==9.4.0
+  # Testing/code quality
+  - flake8>=3.7.9
   # Pip
   # - pip
   # - pip:
