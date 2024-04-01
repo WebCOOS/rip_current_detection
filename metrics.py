@@ -13,9 +13,20 @@ from model_version import (
 )
 
 
-OBJECT_CLASSIFICATION_COUNTER = Counter(
-    'object_classification_counter',
-    'Count of classifications',
+OBJECT_CLASSIFICATION_DETECTION_COUNTER = Counter(
+    'object_classification_detection_counter',
+    'Overall count of inputs with successful detections (that meet a threshold)',
+    [
+        'model_framework',
+        'model_name',
+        'model_version',
+        'classification_name',
+    ]
+)
+
+OBJECT_CLASSIFICATION_OBJECT_COUNTER = Counter(
+    'object_classification_object_counter',
+    'Count of detected objects in all inputs (that meet a threshold)',
     [
         'model_framework',
         'model_name',
@@ -37,7 +48,14 @@ LABELS = (
 __RIP_CURRENT = 'rip_current'
 
 for ( fw, mdl, ver ) in LABELS:
-    OBJECT_CLASSIFICATION_COUNTER.labels(
+    OBJECT_CLASSIFICATION_DETECTION_COUNTER.labels(
+        fw.name,
+        mdl.value,
+        ver.value,
+        __RIP_CURRENT,
+    )
+
+    OBJECT_CLASSIFICATION_OBJECT_COUNTER.labels(
         fw.name,
         mdl.value,
         ver.value,
@@ -59,12 +77,24 @@ def make_metrics_app():
     return make_asgi_app( registry = registry )
 
 
-def increment_rip_current_counter(
+def increment_rip_current_detection_counter(
     fw: str,
     mdl_name: str,
     mdl_version: str
 ):
-    OBJECT_CLASSIFICATION_COUNTER.labels(
+    OBJECT_CLASSIFICATION_DETECTION_COUNTER.labels(
+        fw,
+        mdl_name,
+        mdl_version,
+        __RIP_CURRENT
+    ).inc()
+
+def increment_rip_current_object_counter(
+    fw: str,
+    mdl_name: str,
+    mdl_version: str
+):
+    OBJECT_CLASSIFICATION_OBJECT_COUNTER.labels(
         fw,
         mdl_name,
         mdl_version,
