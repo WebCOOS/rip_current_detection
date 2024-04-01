@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, List, Tuple, Union
 from model_version import ModelFramework, TorchvisionModelName, TorchvisionModelVersion
 from score import BoundingBoxPoint, ClassificationModelResult
-from metrics import increment_rip_current_counter
+from metrics import increment_rip_current_detection_counter, increment_rip_current_object_counter
 
 logger = logging.getLogger( __name__ )
 
@@ -146,10 +146,17 @@ def torchvision_process_image(
                 )
             )
 
+            # Increment metrics
+            increment_rip_current_object_counter(
+                ModelFramework.TORCHVISION.name,
+                model,
+                version
+            )
+
     if detected:
 
         # Increment metrics
-        increment_rip_current_counter(
+        increment_rip_current_detection_counter(
             ModelFramework.TORCHVISION.name,
             model,
             version
