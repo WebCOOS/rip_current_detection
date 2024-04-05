@@ -18,15 +18,11 @@ dependencies:
   - python-multipart
   - uvicorn
   - filetype
-  - prometheus_client
   # TODO: PIL/Pillow may be unused?
   # - Pillow==9.4.0
   # Testing/code quality
   - flake8>=3.7.9
   # Pip
-  # - pip
-  # - pip:
-  #   # - https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp39-cp39-linux_x86_64.whl
-  #   # - https://download.pytorch.org/whl/cu116/torchvision-0.14.1%2Bcu116-cp39-cp39-linux_x86_64.whl
-  #   # Revisit when we approach doing GPU acceleration
-  #   # - cupy-cuda11x --pre -f https://pip.cupy.dev/pre
+  - pip
+  - pip:
+    - starlette_exporter>=0.21.0,<0.22

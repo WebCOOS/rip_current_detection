@@ -15,6 +15,8 @@ import torchvision
 from fastapi import Depends, FastAPI, UploadFile, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette_exporter import PrometheusMiddleware, handle_metrics
+from starlette_exporter.optional_metrics import request_body_size, response_body_size
 # from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -32,9 +34,20 @@ ALLOWED_IMAGE_EXTENSIONS = (
 
 app = FastAPI()
 
+app.add_middleware(
+    PrometheusMiddleware,
+    app_name='rip_current_detection',
+    prefix='http',
+    buckets=[0.1, 0.5, 1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
+    skip_paths=['/health', '/metrics', '/outputs', '/favicon.ico'],
+    group_paths=False,
+    optional_metrics=[response_body_size, request_body_size]
+)
+app.add_route("/metrics", handle_metrics)
+
 # Prometheus metrics
-metrics_app = make_metrics_app()
-app.mount("/metrics", metrics_app)
+# metrics_app = make_metrics_app()
+# app.mount("/metrics", metrics_app)
 
 
 @app.get("/", include_in_schema=False)
