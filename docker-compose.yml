@@ -17,9 +17,26 @@ services:
      - OUTPUT_DIRECTORY=/outputs
     volumes:
       - "model-data:/root/.cache/torch:rw"
+    # Optional: nvidia GPU hardware support
+    runtime: 'nvidia'
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            capabilities: [
+              # 'gpu',
+              'compute',
+              # 'video',
+              'utility'
+            ]
+            count: 1
     command: >
       gunicorn api:app
         --bind "0.0.0.0:8000"
         --timeout 240
-        -w 1 --max-requests 100
+        -w 1 --max-requests 100 --backlog 20
+        --access-logfile -
+        --access-logformat '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" "%(D)s"'
+        --error-logfile -
         -k uvicorn.workers.UvicornWorker

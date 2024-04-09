@@ -30,9 +30,11 @@ def get_device():
 
     # TODO: Revisit to allow for supporting GPU-accelerated/CUDA support
     # if torch.cuda.is_available():
-    if False:
+    if torch.cuda.is_available():
+        logger.warning( "cuda device enabled!")
         return torch.device('cuda')
     else:
+        logger.warning( "cuda unavailable, cpu device used instead")
         return torch.device('cpu')
 
 

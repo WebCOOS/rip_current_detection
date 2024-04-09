@@ -1,5 +1,6 @@
 import os
 import errno
+import logging
 # import sys
 # import warnings
 
@@ -20,11 +21,13 @@ from starlette_exporter.optional_metrics import request_body_size, response_body
 # from PIL import Image
 from pydantic import BaseModel
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from metrics import make_metrics_app
 from model_version import TorchvisionModelName, TorchvisionModelVersion
 from namify import namify_for_content
 from score import ClassificationModelResult
 from torchvision_processing import torchvision_process_image, get_device
+
+logging.basicConfig( level=logging.INFO)
+
 
 TORCHVISION_ENDPOINT_PREFIX = "/torchvision"
 ALLOWED_IMAGE_EXTENSIONS = (
