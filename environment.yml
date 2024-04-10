@@ -29,5 +29,5 @@ dependencies:
   - conda-forge::pip
   - pip:
     - starlette_exporter>=0.21.0,<0.22
-    - torch
-    - torchvision
+    - torch==2.2.2
+    - torchvision==0.17.2
