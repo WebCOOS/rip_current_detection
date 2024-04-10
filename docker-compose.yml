@@ -35,8 +35,7 @@ services:
       gunicorn api:app
         --bind "0.0.0.0:8000"
         --timeout 240
-        -w 1 --max-requests 100 --backlog 20
+        -w 1 --max-requests 100 --backlog 3
         --access-logfile -
-        --access-logformat '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" "%(D)s"'
         --error-logfile -
         -k uvicorn.workers.UvicornWorker
