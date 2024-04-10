@@ -24,18 +24,25 @@ TEXT_SIZE = 2
 TEXT_THICKNESS = 2
 RIP_TEXT = 'rip'
 
+__THE_DEVICE=None
+
 
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
 
-    # TODO: Revisit to allow for supporting GPU-accelerated/CUDA support
-    # if torch.cuda.is_available():
+    global __THE_DEVICE
+
+    if __THE_DEVICE is not None:
+        return __THE_DEVICE
+
     if torch.cuda.is_available():
         logger.warning( "cuda device enabled!")
-        return torch.device('cuda')
+        __THE_DEVICE = torch.device('cuda')
     else:
         logger.warning( "cuda unavailable, cpu device used instead")
-        return torch.device('cpu')
+        __THE_DEVICE = torch.device('cpu')
+
+    return __THE_DEVICE
 
 
 def get_boxes(image, model, threshold) -> List[Tuple[float, Any]]:
