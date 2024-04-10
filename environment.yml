@@ -1,28 +1,33 @@
 name: rip_current_detection
 channels:
+  # - pytorch
+  # - nvidia
   - conda-forge
   - defaults
 dependencies:
   # Python
-  - python=3.9
+  - conda-forge::python=3.9
   # Model/ML-related
-  - numpy=1.23.3
-  - opencv=4.6.0
-  - pytorch=1.13.1
-  - torchvision=0.14.1
+  - conda-forge::numpy=1.23.3
+  - conda-forge::opencv=4.6.0
+  # - pytorch::pytorch=1.13.1
+  # - pytorch::pytorch-cuda=12.1
+  # - pytorch::torchvision=0.14.1
   # TODO: matplotlib may be unused
   # - matplotlib=3.8.2
   # API related
-  - fastapi
-  - gunicorn
-  - python-multipart
-  - uvicorn
-  - filetype
+  - conda-forge::fastapi
+  - conda-forge::gunicorn
+  - conda-forge::python-multipart
+  - conda-forge::uvicorn
+  - conda-forge::filetype
   # TODO: PIL/Pillow may be unused?
   # - Pillow==9.4.0
   # Testing/code quality
-  - flake8>=3.7.9
+  - conda-forge::flake8>=3.7.9
   # Pip
-  - pip
+  - conda-forge::pip
   - pip:
     - starlette_exporter>=0.21.0,<0.22
+    - torch==2.2.2
+    - torchvision==0.17.2

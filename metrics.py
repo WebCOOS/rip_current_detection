@@ -65,16 +65,16 @@ for ( fw, mdl, ver ) in LABELS:
 ENV_PROMETHEUS_MULTIPROC_DIR = 'PROMETHEUS_MULTIPROC_DIR'
 
 
-def make_metrics_app():
+# def make_metrics_app():
 
-    if os.getenv( ENV_PROMETHEUS_MULTIPROC_DIR ) is None:
-        # TODO: This is a hack, in place to prevent the metrics wiring to die
-        # if we don't define its precious environment variable.
-        os.environ[ENV_PROMETHEUS_MULTIPROC_DIR] = "/tmp"
+#     if os.getenv( ENV_PROMETHEUS_MULTIPROC_DIR ) is None:
+#         # TODO: This is a hack, in place to prevent the metrics wiring to die
+#         # if we don't define its precious environment variable.
+#         os.environ[ENV_PROMETHEUS_MULTIPROC_DIR] = "/tmp"
 
-    registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector( registry )
-    return make_asgi_app( registry = registry )
+#     registry = CollectorRegistry()
+#     multiprocess.MultiProcessCollector( registry )
+#     return make_asgi_app( registry = registry )
 
 
 def increment_rip_current_detection_counter(

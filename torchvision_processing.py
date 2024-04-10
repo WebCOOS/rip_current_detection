@@ -24,16 +24,25 @@ TEXT_SIZE = 2
 TEXT_THICKNESS = 2
 RIP_TEXT = 'rip'
 
+__THE_DEVICE=None
+
 
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
 
-    # TODO: Revisit to allow for supporting GPU-accelerated/CUDA support
-    # if torch.cuda.is_available():
-    if False:
-        return torch.device('cuda')
+    global __THE_DEVICE
+
+    if __THE_DEVICE is not None:
+        return __THE_DEVICE
+
+    if torch.cuda.is_available():
+        logger.warning( "cuda device enabled!")
+        __THE_DEVICE = torch.device('cuda')
     else:
-        return torch.device('cpu')
+        logger.warning( "cuda unavailable, cpu device used instead")
+        __THE_DEVICE = torch.device('cpu')
+
+    return __THE_DEVICE
 
 
 def get_boxes(image, model, threshold) -> List[Tuple[float, Any]]:
@@ -42,14 +51,15 @@ def get_boxes(image, model, threshold) -> List[Tuple[float, Any]]:
     Only boxes whose corresponding scores are greater than the given threshold
     are returned.
     """
-    transform = T.Compose([T.ToTensor()])
-    image = transform(image)
-    predictions = model([image.to(get_device(), dtype=torch.float)])[0]
-    boxes = []
-    for box, score in zip(predictions['boxes'], predictions['scores']):
-        if score > threshold:
-            boxes.append( (float(score), box) )
-    return boxes
+    with torch.no_grad():
+        transform = T.Compose([T.ToTensor()])
+        image = transform(image)
+        predictions = model([image.to(get_device(), dtype=torch.float)])[0]
+        boxes = []
+        for box, score in zip(predictions['boxes'], predictions['scores']):
+            if score > threshold:
+                boxes.append( (float(score), box) )
+        return boxes
 
 
 def draw_boxes( image, boxes: List[Tuple[float, Any]] ):
