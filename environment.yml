@@ -1,7 +1,7 @@
 name: rip_current_detection
 channels:
-  - pytorch
-  - nvidia
+  # - pytorch
+  # - nvidia
   - conda-forge
   - defaults
 dependencies:
