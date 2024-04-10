@@ -114,7 +114,7 @@ def load_model(model_path):
     model.to(the_device)
     model.eval()
 
-    model.share_memory()
+    # model.share_memory()
 
     return model
 
