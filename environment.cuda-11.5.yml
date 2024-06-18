@@ -31,3 +31,4 @@ dependencies:
     - starlette_exporter>=0.21.0,<0.22
     - torch==1.12 --index-url https://download.pytorch.org/whl/cu115
     - torchvision==0.13.0 --index-url https://download.pytorch.org/whl/cu115
+    - ultralytics
