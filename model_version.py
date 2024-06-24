@@ -3,6 +3,7 @@ from enum import Enum
 
 class ModelFramework(str, Enum):
     TORCHVISION = "TORCHVISION"
+    ULTRALYTICS = "ULTRALYTICS"
 
 
 class TorchvisionModelName(str, Enum):
@@ -11,3 +12,11 @@ class TorchvisionModelName(str, Enum):
 
 class TorchvisionModelVersion(str, Enum):
     one = "1"
+
+
+class YOLOModelName(str, Enum):
+    ripdetect_walton = "ripdetect_walton"
+
+
+class YOLOModelVersion(str, Enum):
+    yolov8x_11 = "yolov8x_1.1"

@@ -1,14 +1,19 @@
 
+import os
+import errno
 import logging
 import numpy as np
 import cv2
 import torch
 import torchvision.transforms as T
+import torchvision
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from pathlib import Path
 from typing import Any, List, Tuple, Union
 from model_version import ModelFramework, TorchvisionModelName, TorchvisionModelVersion
 from score import BoundingBoxPoint, ClassificationModelResult
 from metrics import increment_rip_current_detection_counter, increment_rip_current_object_counter
+
 
 logger = logging.getLogger( __name__ )
 
@@ -27,6 +32,12 @@ RIP_TEXT = 'rip'
 __THE_DEVICE=None
 
 
+model_folder = Path(os.environ.get(
+    'MODEL_DIRECTORY',
+    str(Path(__file__).parent / "models" )
+))
+
+
 def get_device():
     """Gets device, preferring a CUDA-enabled GPU when available"""
 
@@ -43,6 +54,63 @@ def get_device():
         __THE_DEVICE = torch.device('cpu')
 
     return __THE_DEVICE
+
+
+def load_model(model_path):
+    """Loads model / model weights and moves to available device"""
+
+    if not model_path.exists():
+        raise FileNotFoundError(
+            errno.ENOENT,
+            os.strerror( errno.ENOENT ),
+            str( model_path ),
+        )
+
+        # weights_path.parent.mkdir(parents=True, exist_ok=True)
+        # r = requests.get(model_url)
+        # r.raise_for_status()
+        # with open(weights_path, 'wb') as f:
+        #     f.write(r.content)
+
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=None)
+    model.roi_heads.box_predictor = FastRCNNPredictor(
+        in_channels=model.roi_heads.box_predictor.cls_score.in_features,
+        num_classes=2
+    )
+
+    the_device = get_device()
+    model.load_state_dict(
+        torch.load(
+            str(model_path),
+            map_location=the_device
+        )
+    )
+    model.to(the_device)
+    model.eval()
+
+    # model.share_memory()
+
+    return model
+
+
+__TORCHVISION_MODELS: dict = None
+
+def get_torchvision_model(model: TorchvisionModelName, version: TorchvisionModelVersion):
+
+    global __TORCHVISION_MODELS
+
+    if __TORCHVISION_MODELS is None:
+
+        # load the models, cache in memory, and return
+        __TORCHVISION_MODELS = {
+            'rip_current_detector': {
+                '1': load_model(
+                        model_folder / 'rip_current_detector' / '1' / 'fasterrcnn_resnet50_fpn.pt'
+                    ),
+            }
+        }
+
+    return __TORCHVISION_MODELS[model.value][version.value]
 
 
 def get_boxes(image, model, threshold) -> List[Tuple[float, Any]]:
