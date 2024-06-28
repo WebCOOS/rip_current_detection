@@ -4,7 +4,8 @@ from prometheus_client import (
     make_asgi_app,
     CollectorRegistry,
     multiprocess,
-    Counter
+    Counter,
+    Histogram
 )
 from model_version import (
     ModelFramework,
@@ -12,6 +13,19 @@ from model_version import (
     TorchvisionModelVersion,
 )
 
+
+MODEL_PREDICTION_TIMING_HISTOGRAM = Histogram(
+    'model_prediction_timing_histogram',
+    'Histogram',
+    labelnames = [
+        'model_framework',
+        'model_name',
+        'model_version',
+    ],
+    buckets = (
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0, 5.0, 10, float("inf")
+    )
+)
 
 OBJECT_CLASSIFICATION_DETECTION_COUNTER = Counter(
     'object_classification_detection_counter',
@@ -100,3 +114,14 @@ def increment_rip_current_object_counter(
         mdl_version,
         __RIP_CURRENT
     ).inc()
+
+def time_model_prediction_context(
+    fw: str,
+    mdl_name: str,
+    mdl_version: str
+):
+    return MODEL_PREDICTION_TIMING_HISTOGRAM.labels(
+        fw,
+        mdl_name,
+        mdl_version,
+    ).time()

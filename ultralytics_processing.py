@@ -10,7 +10,11 @@ from model_version import (
     YOLOModelName,
     YOLOModelVersion
 )
-from metrics import increment_rip_current_detection_counter, increment_rip_current_object_counter
+from metrics import (
+    increment_rip_current_detection_counter,
+    increment_rip_current_object_counter,
+    time_model_prediction_context
+)
 import logging
 import torch
 
@@ -113,12 +117,22 @@ def yolo_process_image(
 
     img_boxes = frame
 
-    #use YOLOv8
-    results = yolo_model.predict(
-        frame,
-        # conf = 0.1,
-        device = get_device()
-    )
+    results = None
+
+    labels: list = [
+        ModelFramework.ULTRALYTICS.value,
+        model,
+        version
+    ]
+
+    with time_model_prediction_context( *labels ):
+
+        #use YOLOv8
+        results = yolo_model.predict(
+            frame,
+            # conf = 0.1,
+            device = get_device()
+        )
 
     # If any score is above threshold, flag it as detected
     detected = False
