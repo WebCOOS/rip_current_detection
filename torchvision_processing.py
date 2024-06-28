@@ -212,7 +212,7 @@ def torchvision_process_image(
     boxes = None
 
     labels: list = [
-        ModelFramework.ULTRALYTICS.value,
+        ModelFramework.TORCHVISION.value,
         model,
         version
     ]
