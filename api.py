@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from pathlib import Path
 from typing import Any
@@ -37,7 +38,7 @@ app.add_middleware(
     app_name='rip_current_detection',
     prefix='http',
     buckets=[0.1, 0.5, 1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
-    skip_paths=['/health', '/metrics', '/outputs', '/favicon.ico'],
+    skip_paths=['/health', '/metrics', re.compile( r'^/outputs.+' ), '/favicon.ico'],
     group_paths=False,
     optional_metrics=[response_body_size, request_body_size]
 )
